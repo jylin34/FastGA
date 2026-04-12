@@ -218,4 +218,3 @@ References
 
 5. **OpenMP Specification**: 
    https://www.openmp.org/specifications/
-
