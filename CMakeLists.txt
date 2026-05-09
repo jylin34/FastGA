@@ -1,52 +1,80 @@
-# It will generate two stuff: fastga.so & run_tests(binary executable)
-
 cmake_minimum_required(VERSION 3.14)
 
-project(FastGA CXX)
+project(FastGA)
 
+# GoogleTest requires at least C++17
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ============================== Core Library ==============================
+
+# make static library prevent recompiling same src code
+add_library(
+    fastga_core
+    STATIC
+    src/individual.cpp
+    # add new src code as project grows
+)
+
+target_include_directories(
+    fastga_core
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_executable(
+    FastGA
+    src/main.cpp
+)
+
+target_link_libraries(
+    FastGA
+    PRIVATE
+        fastga_core
+)
+
+# ============================== pybind11 ==============================
 
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(fastga
-    src/individual.cpp
+pybind11_add_module(
+    fastga
     src/binding.cpp
     # add new src code as project grows
 )
 
-target_include_directories(fastga PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(
+    fastga
+    PRIVATE
+        fastga_core
+)
 
+# ============================== GoogleTest ==============================
 
-# C++ unit test (GoogleTest)
+# https://google.github.io/googletest/quickstart-cmake.html#set-up-a-project
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-include(FetchContent)
-
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG    release-1.12.1 
-)
-
-FetchContent_MakeAvailable(googletest)
-
 add_executable(
-  run_tests
-  tests/test_individual.cpp # to test 
-  src/individual.cpp        # be tested 
-  # add new src code and tes code as project grows
+    unit_test 
+    tests/unit/test_individual.cpp
 )
-
-target_include_directories(run_tests PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(
-  run_tests
-  PRIVATE GTest::gtest_main
+    unit_test
+    PRIVATE
+        fastga_core
+        GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(run_tests)
-
-
+gtest_discover_tests(unit_test)
