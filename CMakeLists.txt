@@ -9,28 +9,30 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ============================== Core Library ==============================
 
 # make static library prevent recompiling same src code
-add_library(
-    fastga_core
-    STATIC
-    src/individual.cpp
-    # add new src code as project grows
+add_library(FastGA_core STATIC)
+
+target_sources(FastGA_core
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/individual.cpp
 )
 
-target_include_directories(
-    fastga_core
+target_include_directories(FastGA_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_executable(
-    FastGA
-    src/main.cpp
+# ============================== Executable ==============================
+
+add_executable(FastGA)
+
+target_sources(FastGA
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 )
 
-target_link_libraries(
-    FastGA
+target_link_libraries(FastGA
     PRIVATE
-        fastga_core
+        FastGA_core
 )
 
 # ============================== pybind11 ==============================
@@ -38,15 +40,15 @@ target_link_libraries(
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
-    fastga
-    src/binding.cpp
+    FastGA_mod
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/binding.cpp
     # add new src code as project grows
 )
 
 target_link_libraries(
-    fastga
+    FastGA_mod
     PRIVATE
-        fastga_core
+        FastGA_core
 )
 
 # ============================== GoogleTest ==============================
@@ -64,15 +66,17 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(
-    unit_test 
-    tests/unit/test_individual.cpp
+add_executable(unit_test)
+
+target_sources(unit_test 
+    PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/test_individual.cpp
 )
 
 target_link_libraries(
     unit_test
     PRIVATE
-        fastga_core
+        FastGA_core
         GTest::gtest_main
 )
 
