@@ -9,7 +9,6 @@ Individual::Individual(int size) : m_fitness(0.0) {
 
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    // set to random variable between 0 ~ 1 (may adjust in the future)
     std::uniform_real_distribution<> dis(0.0, 1.0);
     for (double & gene : m_genes) {
         gene = dis(gen);
