@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # make static library prevent recompiling same src code
 add_library(FastGA_core STATIC)
+set_target_properties(FastGA_core PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 target_sources(FastGA_core
     PRIVATE
@@ -37,7 +38,13 @@ target_link_libraries(FastGA_exec
 
 # ============================== pybind11 ==============================
 
-find_package(pybind11 REQUIRED)
+include(FetchContent)
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG        v3.0.4
+)
+FetchContent_MakeAvailable(pybind11)
 
 pybind11_add_module(
     fastga
