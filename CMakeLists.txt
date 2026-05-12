@@ -23,14 +23,14 @@ target_include_directories(FastGA_core
 
 # ============================== Executable ==============================
 
-add_executable(FastGA)
+add_executable(FastGA_exec)
 
-target_sources(FastGA
+target_sources(FastGA_exec
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 )
 
-target_link_libraries(FastGA
+target_link_libraries(FastGA_exec
     PRIVATE
         FastGA_core
 )
@@ -40,13 +40,13 @@ target_link_libraries(FastGA
 find_package(pybind11 REQUIRED)
 
 pybind11_add_module(
-    FastGA_mod
+    fastga
     ${CMAKE_CURRENT_SOURCE_DIR}/src/binding.cpp
     # add new src code as project grows
 )
 
 target_link_libraries(
-    FastGA_mod
+    fastga
     PRIVATE
         FastGA_core
 )
