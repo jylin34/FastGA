@@ -22,10 +22,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        # Assuming pytest is the only Python dependency for tests.
-        # If other dependencies are needed, they should be in requirements.txt
-        # and installed via 'pip install -r requirements.txt'
-        pip install pytest
+        pip install -r requirements.txt
 
     - name: Install System Dependencies
       run: |

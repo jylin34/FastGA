@@ -43,7 +43,7 @@ private:
     double m_mutation_rate;
     size_t m_pop_size;
 
-    py::function m_fitness_func;
+    py::function m_fitness_func; // Smart pointer wrapping the user-defined Python fitness function
 };
 
 #endif
