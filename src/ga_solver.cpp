@@ -2,6 +2,9 @@
 #include "individual.hpp"
 #include <vector>
 #include <cstddef>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
 
 GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, double mutation_rate)
     : m_crossover_rate(crossover_rate), 
@@ -27,6 +30,19 @@ void GASolver::solve(int generations) {
 
 const Individual& GASolver::get_best_individual() const {
     return m_population[0];
+}
+
+double GASolver::test_call_fitness(const std::vector<double>& dummy_genes) {
+    if (!m_fitness_func)    return -1.0;
+
+    // numpy.ndarray float64
+    // 告訴 NumPy 這個一維陣列的總長度（Shape）是多少。
+    // Zero-Copy data() 會直接交出 C++ vector 在記憶體裡的 GPS 實體座標（指標 Pointer）。
+    // 本質上建立了一個 Numpy object 這個物件內部的 data pointer 指向 c++ vector
+    py::array_t<double> py_genes(dummy_genes.size(), dummy_genes.data());
+
+    py::object raw_result = m_fitness_func(py_genes);
+    return py::float_(raw_result).cast<double>();
 }
 
 // 把 m_population 裡每一個 Individual 丟進 fitness function 計算

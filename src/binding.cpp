@@ -1,10 +1,11 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h> // 自動轉換 std::vector 和 python list
 #include "individual.hpp"
+#include "ga_solver.hpp"
 
 namespace py = pybind11;
 
-void init_individual(py::module &m) {
+void init_individual(pybind11::module &m) {
     py::class_<Individual>(m, "Individual")
         .def(py::init<int>(), py::arg("size"))
 
@@ -27,8 +28,15 @@ void init_individual(py::module &m) {
         );
 }
 
-void init_population(py::module &m) {
+void init_population(pybind11::module &m) {
     
+}
+
+void init_ga_solver(pybind11::module &m) {
+    py::class_<GASolver>(m, "GASolver")
+        .def(py::init<size_t, size_t, double, double>()) 
+        .def("set_fitness_func", &GASolver::set_fitness_func)
+        .def("test_call_fitness", &GASolver::test_call_fitness);
 }
 
 PYBIND11_MODULE(fastga, m) {
@@ -36,4 +44,5 @@ PYBIND11_MODULE(fastga, m) {
     
     init_individual(m);
     init_population(m);
+    init_ga_solver(m);
 }

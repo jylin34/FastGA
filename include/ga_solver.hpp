@@ -6,6 +6,9 @@
 #include <vector>
 #include <cstddef>
 #include <functional>
+#include <pybind11/pybind11.h>
+
+namespace py = pybind11;
 
 class GASolver {
 public:
@@ -23,6 +26,9 @@ public:
     void solve(int generations);
     const Individual& get_best_individual() const;
 
+    void set_fitness_func(py::function func) {m_fitness_func = func;}
+    double test_call_fitness(const std::vector<double>& dummy_genes);
+
     size_t population_size() const { return m_pop_size; }
     double crossover_rate() const { return m_crossover_rate; }
     double mutation_rate() const { return m_mutation_rate; }
@@ -37,7 +43,7 @@ private:
     double m_mutation_rate;
     size_t m_pop_size;
 
-    std::function<double(const std::vector<double>&)> m_fitness_func;
+    py::function m_fitness_func;
 };
 
 #endif
