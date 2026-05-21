@@ -29,6 +29,9 @@ public:
     void set_fitness_func(py::function func) {m_fitness_func = func;}
     double test_call_fitness(const std::vector<double>& dummy_genes);
 
+    double benchmark_zero_copy_loop(const std::vector<double>& native_genes, int iterations);
+    double benchmark_deep_copy_loop(const std::vector<double>& native_genes, int iterations);
+
     size_t population_size() const { return m_pop_size; }
     double crossover_rate() const { return m_crossover_rate; }
     double mutation_rate() const { return m_mutation_rate; }

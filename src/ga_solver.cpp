@@ -69,3 +69,41 @@ void GASolver::crossover() {
 void GASolver::mutation() {
     
 }
+
+// ========================= For Benchmark =========================
+// =================================================================
+// Scenario 2: Main loop in C++ with Zero-Copy Bridge
+// =================================================================
+double GASolver::benchmark_zero_copy_loop(const std::vector<double>& native_genes, int iterations) {
+    if (!m_fitness_func) return -1.0;
+
+    double total = 0.0;
+    // The NumPy wrapper is constructed once outside the loop to map the pointer
+    py::array_t<double> py_genes(native_genes.size(), native_genes.data());
+
+    for (int i = 0; i < iterations; ++i) {
+        py::object raw_result = m_fitness_func(py_genes);
+        total += py::float_(raw_result).cast<double>();
+    }
+    return total;
+}
+
+// =================================================================
+// Scenario 3: Main loop in C++ with Explicit Deep-Copy Per Iteration
+// =================================================================
+double GASolver::benchmark_deep_copy_loop(const std::vector<double>& native_genes, int iterations) {
+    if (!m_fitness_func) return -1.0;
+
+    double total = 0.0;
+    size_t data_size = native_genes.size();
+
+    for (int i = 0; i < iterations; ++i) {
+        // Force a raw allocation and memory copy over the CPU heap on every iteration
+        py::array_t<double> py_genes_copy(data_size);
+        std::memcpy(py_genes_copy.mutable_data(), native_genes.data(), data_size * sizeof(double));
+
+        py::object raw_result = m_fitness_func(py_genes_copy);
+        total += py::float_(raw_result).cast<double>();
+    }
+    return total;
+}
