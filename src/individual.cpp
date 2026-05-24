@@ -15,6 +15,10 @@ Individual::Individual(int size) : m_fitness(0.0) {
     }
 }
 
+Individual::Individual(const std::vector<double>& initial_genes) : m_genes(initial_genes), m_fitness(0.0) {
+    // The member initializer list handles everything.
+}
+
 // Accessors Implementation
 std::vector<double> const & Individual::genes() const { // genes getter
     return m_genes;
@@ -27,4 +31,4 @@ double const & Individual::fitness() const { // fitness getter
 } 
 double & Individual::fitness() { // fitness setter
     return m_fitness;
-} 
+}

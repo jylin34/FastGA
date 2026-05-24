@@ -8,9 +8,12 @@
 #include <functional>
 #include <pybind11/pybind11.h>
 
+#include <gtest/gtest_prod.h>
+
 namespace py = pybind11;
 
 class GASolver {
+    FRIEND_TEST(GASolverEvaluateTest, CorrectlyCalculatesAndAssignsFitness);
 public:
     // Rule of Five
     GASolver() = default; // Constructor
