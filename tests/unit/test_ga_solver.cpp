@@ -12,7 +12,7 @@ TEST(GASolverEvaluateTest, CorrectlyCalculatesAndAssignsFitness) {
 
     try {
         py::module_ sys = py::module_::import("sys");
-        sys.attr("path").attr("append")("../venv/lib/python3.14/site-packages"); 
+        sys.attr("path").attr("append")("../venv/lib/python3.10/site-packages"); 
         
     } catch (const std::exception& e) {
         FAIL() << "環境路徑設定失敗: " << e.what();
