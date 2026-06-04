@@ -9,7 +9,8 @@ namespace py = pybind11;
 GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, double mutation_rate)
     : m_crossover_rate(crossover_rate), 
       m_mutation_rate(mutation_rate), 
-      m_pop_size(pop_size) {
+      m_pop_size(pop_size) // member initialized list
+    {
 
     m_population.reserve(pop_size); // allocate memory for m_population in advance
     
