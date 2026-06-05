@@ -29,6 +29,8 @@ public:
     void solve(int generations);
     const Individual& get_best_individual() const;
     void evaluate();
+    void selection();
+    void mutation();
 
     void set_fitness_func(py::function func) {m_fitness_func = func;}
     double test_call_fitness(const std::vector<double>& dummy_genes);
@@ -40,9 +42,7 @@ public:
     double crossover_rate() const { return m_crossover_rate; }
     double mutation_rate() const { return m_mutation_rate; }
 private:
-    void selection();
     void crossover();
-    void mutation();
 
     std::vector<Individual> m_population;
     double m_crossover_rate;
