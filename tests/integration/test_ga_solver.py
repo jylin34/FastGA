@@ -34,3 +34,19 @@ def test_ga_solver_returns_error_when_fitness_function_is_missing():
 	solver = fastga.GASolver(8, 3, 0.8, 0.02)
 
 	assert solver.test_call_fitness([1.0, 2.0, 3.0]) == pytest.approx(-1.0)
+
+
+def test_ga_solver_evaluate_calls_fitness_for_each_individual():
+	solver = fastga.GASolver(8, 4, 0.8, 0.02)
+	calls = []
+
+	def tracking_fitness(genes):
+		genes_array = np.asarray(genes, dtype=np.float64)
+		calls.append(genes_array)
+		return float(np.sum(genes_array))
+
+	solver.set_fitness_func(tracking_fitness)
+	solver.evaluate()
+
+	assert len(calls) == 8
+	assert all(call.shape == (4,) for call in calls)

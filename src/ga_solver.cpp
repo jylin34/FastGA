@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstddef>
 #include <pybind11/numpy.h>
+#include <iostream>
 
 namespace py = pybind11;
 
@@ -53,12 +54,13 @@ void GASolver::evaluate() {
         return; 
     }
 
-    py::gil_scoped_acquire acquire; 
+    py::gil_scoped_acquire acquire; // take GIL
 
+    // sequential loop over population
     for (size_t i = 0; i < m_population.size(); ++i) {
         Individual& ind = m_population[i];
         // 把 C++ vector 轉成 NumPy array，Zero-Copy
-        py::array_t<double> py_genes(ind.genes().size(), ind.genes().data()); 
+        py::array_t<double> py_genes(ind.genes().size(), ind.genes().data()); // SEGFAULT
         py::object raw_result = m_fitness_func(py_genes);
         double score = py::float_(raw_result).cast<double>();
         ind.fitness() = score;

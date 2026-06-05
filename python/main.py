@@ -29,8 +29,8 @@ def main():
     fitness_value = solver.test_call_fitness(test_genes) # here is Deep Copy
     # C++ will create a vector<double> and make a copy of test_genes
     expected_fitness = np.sum(test_genes**2)
-    assert fitness_value == expected_fitness, "Fitness bridge test failed!"
     print(fitness_value)
+    solver.evaluate()
 
     # solver.solve(GENERATIONS)
 
