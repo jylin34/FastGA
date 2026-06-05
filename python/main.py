@@ -31,6 +31,7 @@ def main():
     expected_fitness = np.sum(test_genes**2)
     print(fitness_value)
     solver.evaluate()
+    solver.mutation()
 
     # solver.solve(GENERATIONS)
 

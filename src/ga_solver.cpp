@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstddef>
 #include <pybind11/numpy.h>
+#include <random>
+#include <algorithm>
 #include <iostream>
 
 namespace py = pybind11;
@@ -83,6 +85,26 @@ void GASolver::crossover() {
 // 有不同交配方法
 // 可以平行化
 void GASolver::mutation() {
+    if (m_mutation_rate <= 0.0) return;
+
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> prob_dist(0.0, 1.0);
+    // Gaussian perturbation: mean=0, stddev controls mutation magnitude
+    const double sigma = 0.1; // default standard deviation for Gaussian mutation
+    std::normal_distribution<double> normal_dist(0.0, sigma);
+
+    for (size_t i = 0; i < m_population.size(); ++i) {
+        Individual &ind = m_population[i];
+        std::vector<double> &genes = ind.genes();
+        for (size_t j = 0; j < genes.size(); ++j) {
+            if (prob_dist(gen) < m_mutation_rate) {
+                double new_val = genes[j] + normal_dist(gen);
+                // clamp to [0,1]
+                genes[j] = std::clamp(new_val, 0.0, 1.0);
+            }
+        }
+    }
     
 }
 
