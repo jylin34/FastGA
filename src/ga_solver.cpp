@@ -3,13 +3,15 @@
 #include <vector>
 #include <cstddef>
 #include <pybind11/numpy.h>
+#include <iostream>
 
 namespace py = pybind11;
 
 GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, double mutation_rate)
     : m_crossover_rate(crossover_rate), 
       m_mutation_rate(mutation_rate), 
-      m_pop_size(pop_size) {
+      m_pop_size(pop_size) // member initialized list
+    {
 
     m_population.reserve(pop_size); // allocate memory for m_population in advance
     
@@ -48,7 +50,21 @@ double GASolver::test_call_fitness(const std::vector<double>& dummy_genes) {
 // 把 m_population 裡每一個 Individual 丟進 fitness function 計算
 // 可以做平行化
 void GASolver::evaluate() {
-    
+    if (!m_fitness_func) {
+        return; 
+    }
+
+    py::gil_scoped_acquire acquire; // take GIL
+
+    // sequential loop over population
+    for (size_t i = 0; i < m_population.size(); ++i) {
+        Individual& ind = m_population[i];
+        // 把 C++ vector 轉成 NumPy array，Zero-Copy
+        py::array_t<double> py_genes(ind.genes().size(), ind.genes().data()); // SEGFAULT
+        py::object raw_result = m_fitness_func(py_genes);
+        double score = py::float_(raw_result).cast<double>();
+        ind.fitness() = score;
+    }
 }
 
 // 從現有族群挑選出優秀個體，放進交配池中

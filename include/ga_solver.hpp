@@ -8,9 +8,12 @@
 #include <functional>
 #include <pybind11/pybind11.h>
 
+#include <gtest/gtest_prod.h>
+
 namespace py = pybind11;
 
 class GASolver {
+    FRIEND_TEST(GASolverEvaluateTest, CorrectlyCalculatesAndAssignsFitness);
 public:
     // Rule of Five
     GASolver() = default; // Constructor
@@ -25,6 +28,7 @@ public:
 
     void solve(int generations);
     const Individual& get_best_individual() const;
+    void evaluate();
 
     void set_fitness_func(py::function func) {m_fitness_func = func;}
     double test_call_fitness(const std::vector<double>& dummy_genes);
@@ -36,7 +40,6 @@ public:
     double crossover_rate() const { return m_crossover_rate; }
     double mutation_rate() const { return m_mutation_rate; }
 private:
-    void evaluate();
     void selection();
     void crossover();
     void mutation();

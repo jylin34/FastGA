@@ -46,6 +46,7 @@ target_sources(FastGA_core
 target_include_directories(FastGA_core
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${googletest_SOURCE_DIR}/googletest/include # Allow use of FRIEND_TEST
         ${Python_INCLUDE_DIRS}   # from find_package(Python)
 )
 
@@ -94,6 +95,7 @@ target_sources(unit_test
     PRIVATE 
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/test_individual.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/test_fitness_function.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/test_ga_solver.cpp
 )
 
 target_link_libraries(
