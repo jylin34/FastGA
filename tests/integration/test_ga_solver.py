@@ -76,3 +76,29 @@ def test_ga_solver_mutation_changes_population_and_keeps_bounds():
 	assert np.all(after >= 0.0)
 	assert np.all(after <= 1.0)
 	assert np.any(np.abs(after - before) > 1e-12)
+
+
+def test_ga_solver_selection_keeps_population_size_and_samples_existing_individuals():
+	solver = fastga.GASolver(8, 4, 0.8, 0.02)
+
+	def snapshot_population() -> np.ndarray:
+		calls = []
+
+		def tracking_fitness(genes):
+			genes_array = np.asarray(genes, dtype=np.float64).copy()
+			calls.append(genes_array)
+			return float(np.sum(genes_array))
+
+		solver.set_fitness_func(tracking_fitness)
+		solver.evaluate()
+		return np.vstack(calls)
+
+	before = snapshot_population()
+	solver.selection()
+	after = snapshot_population()
+
+	assert before.shape == (8, 4)
+	assert after.shape == (8, 4)
+
+	for selected in after:
+		assert np.any(np.all(np.isclose(before, selected, atol=1e-12), axis=1))

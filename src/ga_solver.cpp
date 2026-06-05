@@ -5,6 +5,7 @@
 #include <pybind11/numpy.h>
 #include <random>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
 namespace py = pybind11;
@@ -72,7 +73,48 @@ void GASolver::evaluate() {
 // 從現有族群挑選出優秀個體，放進交配池中
 // Roulette Wheel Selection / Tournament Selection
 void GASolver::selection() {
+    if (m_population.empty()) return;
 
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937 gen(rd());
+
+    const size_t n = m_population.size();
+    std::vector<double> weights;
+    weights.reserve(n);
+
+    double min_fitness = m_population[0].fitness();
+    for (const Individual &ind : m_population) {
+        min_fitness = std::min(min_fitness, ind.fitness());
+    }
+
+    // Shift all values to non-negative so roulette wheel weights are valid.
+    const double shift = (min_fitness < 0.0) ? (-min_fitness + 1e-12) : 0.0;
+    double total_weight = 0.0;
+
+    for (const Individual &ind : m_population) {
+        double w = ind.fitness() + shift;
+        if (!std::isfinite(w) || w < 0.0) w = 0.0;
+        weights.push_back(w);
+        total_weight += w;
+    }
+
+    std::vector<Individual> new_population;
+    new_population.reserve(n);
+
+    if (total_weight <= 0.0) {
+        // Fallback: if all fitness are zero/invalid, sample uniformly.
+        std::uniform_int_distribution<size_t> pick_uniform(0, n - 1);
+        for (size_t i = 0; i < n; ++i) {
+            new_population.push_back(m_population[pick_uniform(gen)]);
+        }
+    } else {
+        std::discrete_distribution<size_t> pick(weights.begin(), weights.end());
+        for (size_t i = 0; i < n; ++i) {
+            new_population.push_back(m_population[pick(gen)]);
+        }
+    }
+
+    m_population = std::move(new_population);
 }
 
 // 開始交配

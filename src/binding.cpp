@@ -37,6 +37,7 @@ void init_ga_solver(pybind11::module &m) {
         .def(py::init<size_t, size_t, double, double>()) 
         .def("set_fitness_func", &GASolver::set_fitness_func)
         .def("evaluate", &GASolver::evaluate)
+        .def("selection", &GASolver::selection)
         .def("mutation", &GASolver::mutation)
         .def("test_call_fitness", &GASolver::test_call_fitness);
 }
