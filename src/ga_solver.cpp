@@ -6,35 +6,100 @@
 #include <random>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <iostream>
 
 namespace py = pybind11;
 
 GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, double mutation_rate)
+    : GASolver(pop_size, genome_size, crossover_rate, mutation_rate, -1.0, 1.0) {}
+
+GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, double mutation_rate, double lower, double upper)
     : m_crossover_rate(crossover_rate), 
       m_mutation_rate(mutation_rate), 
-      m_pop_size(pop_size) // member initialized list
+      m_pop_size(pop_size),
+      m_lower_bound(lower),
+      m_upper_bound(upper)
     {
-
     m_population.reserve(pop_size); // allocate memory for m_population in advance
-    
     for (size_t i = 0; i < pop_size; i ++) {
-        m_population.emplace_back(genome_size); // genome_size 會當作參數傳給 Individual
-        // 用 emplace_back 可以達到 zero-copy ?
+        m_population.emplace_back(genome_size, m_lower_bound, m_upper_bound);
     }
 }
 
 void GASolver::solve(int generations) {
     for (int gen = 0; gen < generations; gen ++) {
         evaluate();
+        // Print best individual found in this generation (minimization)
+        if (!m_population.empty()) {
+            double best_f = std::numeric_limits<double>::infinity();
+            size_t best_idx = 0;
+            for (size_t i = 0; i < m_population.size(); ++i) {
+                double f = m_population[i].fitness();
+                if (f < best_f) {
+                    best_f = f;
+                    best_idx = i;
+                }
+            }
+            std::cout << "Gen " << gen << " best fitness=" << best_f << " genes=[";
+            const auto &g = m_population[best_idx].genes();
+            for (size_t k = 0; k < g.size(); ++k) {
+                std::cout << g[k];
+                if (k + 1 < g.size()) std::cout << ", ";
+            }
+            std::cout << "]\n";
+            // Update historical best across all generations
+            if (!m_has_best || best_f < m_best_individual.fitness()) {
+                m_best_individual = m_population[best_idx];
+                m_has_best = true;
+            }
+        }
         selection();
         crossover();
         mutation();
+
+        if (m_has_best && !m_population.empty()) {
+            m_population[0] = m_best_individual;
+        }
+    }
+    evaluate();  // Final evaluation after all generations
+
+    // After final evaluation, ensure historical best reflects final population too
+    if (!m_population.empty()) {
+        double best_f = std::numeric_limits<double>::infinity();
+        size_t best_idx = 0;
+        for (size_t i = 0; i < m_population.size(); ++i) {
+            double f = m_population[i].fitness();
+            if (f < best_f) {
+                best_f = f;
+                best_idx = i;
+            }
+        }
+        if (!m_has_best || best_f < m_best_individual.fitness()) {
+            m_best_individual = m_population[best_idx];
+            m_has_best = true;
+        }
     }
 }
 
 const Individual& GASolver::get_best_individual() const {
-    return m_population[0];
+    if (m_has_best) {
+        return m_best_individual;
+    }
+    if (m_population.empty()) {
+        throw std::runtime_error("Population is empty");
+    }
+    // Fallback: return current population best if historical best not initialized
+    size_t best_idx = 0;
+    double best_f = m_population[0].fitness();
+    for (size_t i = 1; i < m_population.size(); ++i) {
+        double f = m_population[i].fitness();
+        if (f < best_f) {
+            best_f = f;
+            best_idx = i;
+        }
+    }
+    return m_population[best_idx];
 }
 
 double GASolver::test_call_fitness(const std::vector<double>& dummy_genes) {
@@ -53,20 +118,26 @@ double GASolver::test_call_fitness(const std::vector<double>& dummy_genes) {
 // 把 m_population 裡每一個 Individual 丟進 fitness function 計算
 // 可以做平行化
 void GASolver::evaluate() {
-    if (!m_fitness_func) {
-        return; 
-    }
+    if (!m_fitness_func) return; 
 
-    py::gil_scoped_acquire acquire; // take GIL
+    py::gil_scoped_acquire acquire; 
 
-    // sequential loop over population
     for (size_t i = 0; i < m_population.size(); ++i) {
         Individual& ind = m_population[i];
-        // 把 C++ vector 轉成 NumPy array，Zero-Copy
-        py::array_t<double> py_genes(ind.genes().size(), ind.genes().data()); // SEGFAULT
+        
+        // 💡 1. 用 Reference 咬住記憶體，確保它在算完分數前絕對活著
+        std::vector<double>& native_genes = ind.genes(); 
+        
+        // 💡 2. 建立 Zero-copy NumPy 陣列
+        py::array_t<double> py_genes(
+            { native_genes.size() },
+            { sizeof(double) },
+            native_genes.data(),
+            py::handle()
+        );
+
         py::object raw_result = m_fitness_func(py_genes);
-        double score = py::float_(raw_result).cast<double>();
-        ind.fitness() = score;
+        ind.fitness() = py::float_(raw_result).cast<double>();
     }
 }
 
@@ -82,18 +153,17 @@ void GASolver::selection() {
     std::vector<double> weights;
     weights.reserve(n);
 
-    double min_fitness = m_population[0].fitness();
+    double max_fitness = m_population[0].fitness();
     for (const Individual &ind : m_population) {
-        min_fitness = std::min(min_fitness, ind.fitness());
+        max_fitness = std::max(max_fitness, ind.fitness());
     }
 
-    // Shift all values to non-negative so roulette wheel weights are valid.
-    const double shift = (min_fitness < 0.0) ? (-min_fitness + 1e-12) : 0.0;
+    // Reverse fitness for minimization: smaller fitness gets higher weight
     double total_weight = 0.0;
-
     for (const Individual &ind : m_population) {
-        double w = ind.fitness() + shift;
-        if (!std::isfinite(w) || w < 0.0) w = 0.0;
+        double w = max_fitness + 1.0 - ind.fitness();
+        w = std::max(0.0, w);
+        if (!std::isfinite(w)) w = 0.0;
         weights.push_back(w);
         total_weight += w;
     }
@@ -120,7 +190,76 @@ void GASolver::selection() {
 // 開始交配
 // 有不同交配方法
 void GASolver::crossover() {
+    if (m_population.empty()) return;
+    if (m_crossover_rate <= 0.0) return;
 
+    static thread_local std::random_device rd;
+    static thread_local std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> prob_dist(0.0, 1.0);
+
+    constexpr double alpha = 0.5; // BLX-0.5
+
+    std::vector<Individual> new_population;
+    new_population.reserve(m_population.size());
+
+    const size_t pop_size = m_population.size();
+    const size_t last_pair_start = (pop_size / 2) * 2;
+
+    // BLX generates values in an extended interval; do not clamp to [0,1]
+
+    for (size_t i = 0; i + 1 < last_pair_start; i += 2) {
+        const Individual &parent1 = m_population[i];
+        const Individual &parent2 = m_population[i + 1];
+
+        if (prob_dist(gen) > m_crossover_rate) {
+            new_population.push_back(parent1);
+            new_population.push_back(parent2);
+            continue;
+        }
+
+        const std::vector<double> &genes1 = parent1.genes();
+        const std::vector<double> &genes2 = parent2.genes();
+        const size_t genome_size = std::min(genes1.size(), genes2.size());
+
+        std::vector<double> child1_genes;
+        std::vector<double> child2_genes;
+        child1_genes.reserve(genome_size);
+        child2_genes.reserve(genome_size);
+
+        for (size_t j = 0; j < genome_size; ++j) {
+            double g1 = genes1[j];
+            double g2 = genes2[j];
+            double lower = std::min(g1, g2);
+            double upper = std::max(g1, g2);
+            double interval = upper - lower;
+            double min_range = lower - alpha * interval;
+            double max_range = upper + alpha * interval;
+
+            std::uniform_real_distribution<double> gene_dist(min_range, max_range);
+            double cg1 = gene_dist(gen);
+            double cg2 = gene_dist(gen);
+            // Clamp to solver-specified bounds to avoid runaway values
+            cg1 = std::clamp(cg1, m_lower_bound, m_upper_bound);
+            cg2 = std::clamp(cg2, m_lower_bound, m_upper_bound);
+            child1_genes.push_back(cg1);
+            child2_genes.push_back(cg2);
+        }
+
+        Individual child1(child1_genes);
+        Individual child2(child2_genes);
+        // Invalidate fitness so evaluate() will recalculate
+        child1.fitness() = -1.0;
+        child2.fitness() = -1.0;
+        new_population.push_back(child1);
+        new_population.push_back(child2);
+    }
+
+    // If population size is odd, keep the last individual as-is.
+    if (pop_size % 2 == 1) {
+        new_population.push_back(m_population.back());
+    }
+
+    m_population = std::move(new_population);
 }
 
 // 基因突變
@@ -142,8 +281,8 @@ void GASolver::mutation() {
         for (size_t j = 0; j < genes.size(); ++j) {
             if (prob_dist(gen) < m_mutation_rate) {
                 double new_val = genes[j] + normal_dist(gen);
-                // clamp to [0,1]
-                genes[j] = std::clamp(new_val, 0.0, 1.0);
+                // Clamp mutated gene to bounds
+                genes[j] = std::clamp(new_val, m_lower_bound, m_upper_bound);
             }
         }
     }

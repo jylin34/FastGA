@@ -9,9 +9,22 @@ Individual::Individual(int size) : m_fitness(0.0) {
 
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis(0.0, 1.0);
+    // Initialize genes from a normal distribution (mean=0, std=1)
+    std::normal_distribution<> nd(0.0, 1.0);
     for (double & gene : m_genes) {
-        gene = dis(gen);
+        gene = nd(gen);
+    }
+}
+
+// Constructor with explicit uniform initialization in [lower, upper]
+Individual::Individual(int size, double lower, double upper) : m_fitness(0.0) {
+    m_genes.resize(size);
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<> ud(lower, upper);
+    for (double & gene : m_genes) {
+        gene = ud(gen);
     }
 }
 

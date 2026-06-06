@@ -8,6 +8,7 @@ namespace py = pybind11;
 void init_individual(pybind11::module &m) {
     py::class_<Individual>(m, "Individual")
         .def(py::init<int>(), py::arg("size"))
+        .def(py::init<int, double, double>(), py::arg("size"), py::arg("lower"), py::arg("upper"))
 
         .def_property("genes",
             // Getter
@@ -35,9 +36,13 @@ void init_population(pybind11::module &m) {
 void init_ga_solver(pybind11::module &m) {
     py::class_<GASolver>(m, "GASolver")
         .def(py::init<size_t, size_t, double, double>()) 
+        .def(py::init<size_t, size_t, double, double, double, double>(), py::arg("pop_size"), py::arg("genome_size"), py::arg("crossover_rate"), py::arg("mutation_rate"), py::arg("lower"), py::arg("upper"))
+        .def("solve", &GASolver::solve)
+        .def("get_best_individual", &GASolver::get_best_individual, py::return_value_policy::reference_internal)
         .def("set_fitness_func", &GASolver::set_fitness_func)
         .def("evaluate", &GASolver::evaluate)
         .def("selection", &GASolver::selection)
+        .def("crossover", &GASolver::crossover)
         .def("mutation", &GASolver::mutation)
         .def("test_call_fitness", &GASolver::test_call_fitness);
 }
