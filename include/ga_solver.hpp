@@ -29,6 +29,7 @@ public:
 
     void solve(int generations);
     const Individual& get_best_individual() const;
+    void batch_evaluate();
     void evaluate();
     void selection();
     void mutation();

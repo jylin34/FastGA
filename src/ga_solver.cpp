@@ -29,7 +29,7 @@ GASolver::GASolver(size_t pop_size, size_t genome_size, double crossover_rate, d
 
 void GASolver::solve(int generations) {
     for (int gen = 0; gen < generations; gen ++) {
-        evaluate();
+        batch_evaluate();
         // Print best individual found in this generation (minimization)
         if (!m_population.empty()) {
             double best_f = std::numeric_limits<double>::infinity();
@@ -62,7 +62,7 @@ void GASolver::solve(int generations) {
             m_population[0] = m_best_individual;
         }
     }
-    evaluate();  // Final evaluation after all generations
+    batch_evaluate();  // Final evaluation after all generations
 
     // After final evaluation, ensure historical best reflects final population too
     if (!m_population.empty()) {
@@ -117,6 +117,43 @@ double GASolver::test_call_fitness(const std::vector<double>& dummy_genes) {
 
 // 把 m_population 裡每一個 Individual 丟進 fitness function 計算
 // 可以做平行化
+void GASolver::batch_evaluate() {
+    if (!m_fitness_func) return; 
+
+    py::gil_scoped_acquire acquire; 
+
+    if (m_population.empty()) return;
+
+    const size_t pop_size = m_population.size();
+    const size_t genome_size = m_population.front().genes().size();
+
+    py::array_t<double> py_population(
+        { static_cast<py::ssize_t>(pop_size), static_cast<py::ssize_t>(genome_size) }
+    );
+    auto population_view = py_population.mutable_unchecked<2>();
+
+    for (size_t i = 0; i < pop_size; ++i) {
+        const std::vector<double>& native_genes = m_population[i].genes();
+        for (size_t j = 0; j < genome_size; ++j) {
+            population_view(i, j) = native_genes[j];
+        }
+    }
+
+    py::object raw_result = m_fitness_func(py_population);
+    py::array_t<double, py::array::c_style | py::array::forcecast> fitness_array =
+        py::cast<py::array_t<double, py::array::c_style | py::array::forcecast>>(raw_result);
+
+    if (fitness_array.ndim() != 1 || static_cast<size_t>(fitness_array.size()) != pop_size) {
+        throw std::runtime_error("Batch fitness function must return a 1D array with one fitness value per individual");
+    }
+
+    auto fitness_view = fitness_array.unchecked<1>();
+
+    for (size_t i = 0; i < pop_size; ++i) {
+        m_population[i].fitness() = fitness_view(i);
+    }
+}
+
 void GASolver::evaluate() {
     if (!m_fitness_func) return; 
 

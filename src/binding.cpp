@@ -41,6 +41,7 @@ void init_ga_solver(pybind11::module &m) {
         .def("get_best_individual", &GASolver::get_best_individual, py::return_value_policy::reference_internal)
         .def("set_fitness_func", &GASolver::set_fitness_func)
         .def("evaluate", &GASolver::evaluate)
+        .def("batch_evaluate", &GASolver::batch_evaluate)
         .def("selection", &GASolver::selection)
         .def("crossover", &GASolver::crossover)
         .def("mutation", &GASolver::mutation)
