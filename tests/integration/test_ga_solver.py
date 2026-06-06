@@ -43,13 +43,13 @@ def test_ga_solver_evaluate_calls_fitness_for_each_individual():
 	def tracking_fitness(genes):
 		genes_array = np.asarray(genes, dtype=np.float64)
 		calls.append(genes_array)
-		return float(np.sum(genes_array))
+		return np.sum(genes_array, axis=1)
 
 	solver.set_fitness_func(tracking_fitness)
 	solver.evaluate()
 
-	assert len(calls) == 8
-	assert all(call.shape == (4,) for call in calls)
+	assert len(calls) == 1
+	assert calls[0].shape == (8, 4)
 
 
 def test_ga_solver_mutation_changes_population_and_keeps_bounds():
