@@ -13,6 +13,8 @@ public:
     Individual & operator=(Individual const &) = default; // Copy Assignment Operator
     Individual & operator=(Individual &&) = default; // Move Assignment Operator
     Individual(int size);
+    // Construct with explicit per-gene value range [lower, upper]
+    Individual(int size, double lower, double upper);
     Individual(const std::vector<double>& initial_genes);
     
     // Destructor
