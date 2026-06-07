@@ -50,9 +50,9 @@ def main():
     GENOME_SIZE = 2
     CROSSOVER_RATE = 0.5
     MUTATION_RATE = 0.05
-    GENERATIONS = 10000
-    UPPER_BOUND = 10.0
-    LOWER_BOUND = -10.0
+    GENERATIONS = 1000
+    UPPER_BOUND = 2.0
+    LOWER_BOUND = -2.0
 
     solver = fastga.GASolver(
         POPULATION_SIZE,
@@ -66,9 +66,9 @@ def main():
     solver.set_fitness_func(shubert_function)
     solver.solve(GENERATIONS)
 
-    best_individual = solver.get_best_individual()
-    print("Best individual genes:", best_individual.genes)
-    print("Best individual fitness:", best_individual.fitness)
+    best_individual = solver.get_best_individual() # <class 'fastga.Individual'>
+    print("Best individual genes:", best_individual.genes) # <class 'list'>
+    print("Best individual fitness:", best_individual.fitness) # <class 'float'>
 
 if __name__ == "__main__":
     main()
